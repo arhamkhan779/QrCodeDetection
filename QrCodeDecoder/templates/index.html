@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Detection</title>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #2c2c2c;  /* Dark background */
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 700px;
+            padding: 40px;
+            background-color: #fff;  /* White background for the card */
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            background-color: #333;  /* Dark background for content */
+            color: #fff;
+        }
+
+        h1 {
+            color: #ffcc00;  /* Mustard yellow */
+            font-size: 36px;
+        }
+
+        p {
+            font-size: 18px;
+            color: #ffcc00;  /* Mustard yellow */
+        }
+
+        .upload-section {
+            margin-top: 30px;
+            padding: 30px;
+            background: #444;  /* Dark background for upload section */
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .drop-zone {
+            border: 3px dashed #ffcc00;  /* Mustard yellow dashed border */
+            border-radius: 10px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 204, 0, 0.1); /* Light mustard background */
+        }
+
+        .drop-zone:hover {
+            background: rgba(255, 204, 0, 0.2); /* Lighter mustard on hover */
+            border-color: #ffcc00;
+        }
+
+        .prediction {
+            margin-top: 30px;
+            padding: 15px;
+            font-size: 20px;
+            background: #444;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction p {
+            font-weight: bold;
+            color: #ffcc00; /* Mustard yellow for text */
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        /* New Style for Textarea */
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            font-size: 18px;
+            color: #333;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            resize: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>QR Code Detection</h1>
+        <p>Upload an image to detect QR code and get the data.</p>
+        
+        <div class="upload-section">
+            <!-- Hidden file input -->
+            <input type="file" id="imageUpload" accept="image/*" style="display:none;" />
+            <!-- Drag and Drop Zone -->
+            <div class="drop-zone" id="dropZone">
+                <p>Drag and Drop an image here, or click to upload</p>
+            </div>
+        </div>
+
+        <!-- Prediction Section -->
+        <div class="prediction" id="predictionSection" style="display: none;">
+            <img id="uploadedImage" class="uploaded-image" src="" alt="Uploaded Image" />
+            <p><strong>QR Code Data:</strong></p>
+            <!-- Textarea for QR Code Data -->
+            <textarea id="predictionText" class="result-text" readonly></textarea>
+        </div>
+    </div>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const dropZone = document.getElementById('dropZone');
+        const predictionSection = document.getElementById('predictionSection');
+        const predictionText = document.getElementById('predictionText');
+        const uploadedImage = document.getElementById('uploadedImage');
+
+        // Handle Drag & Drop
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('active');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('active');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                uploadImage(file);
+            }
+        });
+
+        // Handle File Upload
+        dropZone.addEventListener('click', () => {
+            imageUpload.click();
+        });
+
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                uploadImage(file);
+            }
+        });
+
+        // Function to upload the image to the server
+        function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Show preview of uploaded image
+            const reader = new FileReader();
+            reader.onloadend = function() {
+                uploadedImage.src = reader.result;
+            }
+            reader.readAsDataURL(file);
+
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.qr_data) {
+                    // Show the QR code data in the textarea
+                    predictionText.value = data.qr_data;
+                    predictionSection.style.display = 'block';
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>
